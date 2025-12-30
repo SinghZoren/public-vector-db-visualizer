@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Public 3D Vector Space</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+
+        #bevy {
+            flex-grow: 1;
+            height: 100%;
+            display: block;
+            outline: none;
+        }
+
+        .side-panel {
+            width: 320px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            border-right: 1px solid #0f0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .side-panel-right {
+            border-right: none;
+            border-left: 1px solid #0f0;
+        }
+
+        h3 { margin-top: 0; color: #0f0; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #0f0; padding-bottom: 10px; font-size: 18px; }
+
+        .input-group {
+            margin-top: 20px;
+        }
+
+        input[type="text"] {
+            background: #000;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 12px;
+            width: calc(100% - 26px);
+            margin-bottom: 15px;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        button {
+            background: #0f0;
+            border: 1px solid #0f0;
+            color: #000;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #000;
+            color: #0f0;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #0a0;
+            line-height: 1.5;
+            border: 1px dashed #0a0;
+            padding: 10px;
+        }
+
+        .node-info {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .recent-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .recent-item {
+            padding: 8px;
+            border-bottom: 1px solid #030;
+            cursor: pointer;
+        }
+
+        .recent-item:hover {
+            background: #010;
+            border-color: #0f0;
+        }
+
+        .label { color: #0f0; font-size: 10px; margin-bottom: 4px; }
+        .value { color: #fff; font-size: 16px; margin-bottom: 15px; }
+        .coords { color: #0a0; font-size: 12px; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #0f0; }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 340px;
+            font-size: 10px;
+            color: #0a0;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border: 1px solid #030;
+        }
+    </style>
+</head>
+<body>
+    <!-- LEFT PANEL: Add & Instructions -->
+    <div class="side-panel">
+        <div style="font-size: 10px; margin-bottom: 10px;">> VECTOR_OS v1.0.5</div>
+        <h3>Control Center</h3>
+        
+        <div class="input-group">
+            <input type="text" id="nodeInput" placeholder="ENTER WORD TO PROJECT...">
+            <button onclick="addNode()">EXECUTE PROJECTION</button>
+            <button onclick="clearFocus()" style="background: #000; color: #0f0;">RESET CAMERA</button>
+        </div>
+
+        <div class="instructions">
+            [MANUAL CONTROLS]<br>
+            - LEFT MOUSE: Orbit view<br>
+            - SCROLL: Zoom in/out<br>
+            - CLICK VECTOR: Inspect data<br><br>
+            [PROJECTION LOGIC]<br>
+            Each word is hashed into a 384-dimensional space and dot-producted against axis seeds to determine its 3D coordinates.
+        </div>
+    </div>
+
+    <!-- MAIN VIEW -->
+    <canvas id="bevy"></canvas>
+    
+    <div class="controls-hint">
+        PAN-ORBIT: LEFT_MB | ZOOM: SCROLL | SELECT: CLICK_ARROW
+    </div>
+
+    <!-- RIGHT PANEL: Selection & Live Feed -->
+    <div class="side-panel side-panel-right">
+        <div style="font-size: 10px; margin-bottom: 10px;">> STATUS: MONITORING...</div>
+        <h3>Inspector</h3>
+
+        <div id="selectionPanel" class="node-info">
+            <div class="label">SELECTED_NODE</div>
+            <div id="selectedWord" class="value">---</div>
+            <div class="label">COORDINATES</div>
+            <div id="selectedCoords" class="coords">X:0.00 Y:0.00 Z:0.00</div>
+            <div style="margin-top: 20px; font-size: 10px; color: #0f0;">[TRACKING_LOCKED]</div>
+        </div>
+
+        <div id="feedPanel">
+            <div class="label">LIVE_DATABASE_FEED</div>
+            <div id="recentList" class="recent-list">
+                <!-- Live nodes go here -->
+                <div style="color: #050;">WAITING FOR DATA...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, { add_node_wasm, run_bevy_app, clear_target } from './pkg/vecors.js';
+
+        async function run() {
+            await init();
+            try { run_bevy_app(); } catch (e) {
+                if (!e.message || !e.message.includes("control flow")) console.error(e);
+            }
+        }
+
+        window.addNode = async function() {
+            const input = document.getElementById('nodeInput');
+            const text = input.value.trim();
+            if (text) {
+                try {
+                    await add_node_wasm(text);
+                    input.value = '';
+                } catch (e) {
+                    console.error("Execution error:", e);
+                }
+            }
+        };
+
+        window.clearFocus = function() {
+            clear_target();
+            document.getElementById('selectionPanel').style.display = 'none';
+        };
+
+        // Bridge function called from Rust
+        window.updateUI = function(data) {
+            document.getElementById('selectionPanel').style.display = 'block';
+            document.getElementById('selectedWord').textContent = data.text.toUpperCase();
+            document.getElementById('selectedCoords').textContent = 
+                `X:${data.x.toFixed(2)} Y:${data.y.toFixed(2)} Z:${data.z.toFixed(2)}`;
+        };
+
+        window.updateRecentNodes = function(nodes) {
+            const list = document.getElementById('recentList');
+            list.innerHTML = '';
+            nodes.slice(0, 20).forEach(node => {
+                const item = document.createElement('div');
+                item.className = 'recent-item';
+                item.innerHTML = `
+                    <div style="color: #0f0; font-weight: bold;">${node.text.toUpperCase()}</div>
+                    <div style="font-size: 10px; color: #0a0;">X:${node.x.toFixed(1)} Y:${node.y.toFixed(1)} Z:${node.z.toFixed(1)}</div>
+                `;
+                item.onclick = () => {
+                    // This will be handled by the click system in Rust if we select it
+                    // For now, we just update the UI
+                    window.updateUI(node);
+                    // To actually fly there, we need to expose a way to set the target in Rust
+                    // Let's just use addNode for now as it handles duplicates correctly
+                    add_node_wasm(node.text);
+                };
+                list.appendChild(item);
+            });
+        };
+
+        window.tursoExecute = async function(url, token, sql, args) {
+            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+            const mappedArgs = args.map(arg => {
+                if (arg === null) return { type: "null" };
+                if (typeof arg === "number") {
+                    if (Number.isInteger(arg)) return { type: "integer", value: String(arg) };
+                    return { type: "float", value: arg };
+                }
+                return { type: "text", value: String(arg) };
+            });
+
+            const payload = {
+                requests: [
+                    { type: "execute", stmt: { sql: sql, args: mappedArgs } },
+                    { type: "close" }
+                ]
+            };
+
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            const data = await response.json();
+            const result = data.results[0];
+            if (result.type === "error") throw new Error(result.error.message);
+            const rows = result.response.result.rows || [];
+            return rows.map(row => row.map(cell => {
+                if (cell.type === "null") return null;
+                if (cell.type === "integer" || cell.type === "blob") return cell.value;
+                if (cell.type === "float") return parseFloat(cell.value) || cell.value;
+                return cell.value;
+            }));
+        };
+
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.addNode();
+        });
+
+        run();
+    </script>
+</body>
+</html>

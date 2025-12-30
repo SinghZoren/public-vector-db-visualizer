@@ -1,0 +1,26 @@
+# Rust
+/target
+Cargo.lock
+
+# WASM
+/pkg
+
+# Environment variables (Crucial for Turso credentials)
+.env
+.env.local
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.wasm
+*.js
+!index.html
