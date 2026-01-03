@@ -1,5 +1,5 @@
 mod turso;
-mod math;
+mod brain;
 
 use bevy::prelude::*;
 use bevy::window::WindowMode;
@@ -9,13 +9,16 @@ use wasm_bindgen::prelude::*;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 use crate::turso::TursoClient;
-use crate::math::project_text_to_3d;
+use crate::brain::model::SemanticBrain;
+use crate::brain::projection::Projector;
 
 lazy_static! {
     static ref TURSO_CLIENT: Mutex<Option<TursoClient>> = Mutex::new(None);
     static ref NODE_QUEUE: Mutex<Vec<NodeData>> = Mutex::new(Vec::new());
     static ref CAMERA_COMMAND: Mutex<Option<CameraCmd>> = Mutex::new(None);
     static ref LAST_KNOWN_COUNT: Mutex<usize> = Mutex::new(0);
+    static ref SEMANTIC_BRAIN: Mutex<SemanticBrain> = Mutex::new(SemanticBrain::new());
+    static ref PROJECTOR: Mutex<Projector> = Mutex::new(Projector::new());
 }
 
 enum CameraCmd {
@@ -38,7 +41,7 @@ pub struct NodeData {
     pub y: f32,
     pub z: f32,
     pub is_new: bool,
-    pub created_at: String, // Added timestamp field
+    pub created_at: String,
 }
 
 #[derive(Component)]
@@ -77,6 +80,35 @@ pub fn main() {
     let database_url = env!("TURSO_DATABASE_URL").to_string();
     let auth_token = env!("TURSO_AUTH_TOKEN").to_string();
     *TURSO_CLIENT.lock().unwrap() = Some(TursoClient::new(database_url, auth_token));
+
+    let mut brain = SEMANTIC_BRAIN.lock().unwrap();
+    
+    let model_bytes = include_bytes!("../trained_brain.bin");
+    if model_bytes.len() > 0 {
+        match SemanticBrain::from_bytes(model_bytes) {
+            Ok(loaded_brain) => {
+                *brain = loaded_brain;
+                web_sys::console::log_1(&"Embedded Semantic Brain Loaded!".into());
+            }
+            Err(e) => {
+                web_sys::console::log_1(&format!("Failed to load embedded brain: {}. Using blank brain.", e).into());
+            }
+        }
+    }
+}
+
+fn get_semantic_pos(text: &str) -> Vec3 {
+    let mut brain = SEMANTIC_BRAIN.lock().unwrap();
+    let projector = PROJECTOR.lock().unwrap();
+    
+    brain.train_step(text, &[], &[], 0.0, 0); 
+    
+    if let Some(v) = brain.get_embedding(text) {
+        let (x, y, z) = projector.project(v);
+        Vec3::new(x, y, z) * 100.0
+    } else {
+        Vec3::ZERO
+    }
 }
 
 #[wasm_bindgen]
@@ -98,7 +130,7 @@ pub fn run_bevy_app() {
             is_manual_control: false,
             last_interaction: 0.0,
         })
-        .add_systems(Startup, (setup_scene, setup_axis, spawn_load_task))
+        .add_systems(Startup, (setup_scene, setup_axis, spawn_load_task, fit_projector))
         .add_systems(Update, (
             process_node_queue, 
             camera_controller,
@@ -106,6 +138,15 @@ pub fn run_bevy_app() {
             handle_picking
         ))
         .run();
+}
+
+fn fit_projector() {
+    let brain = SEMANTIC_BRAIN.lock().unwrap();
+    let mut projector = PROJECTOR.lock().unwrap();
+    if !brain.embeddings.is_empty() {
+        projector.fit(&brain.embeddings);
+        web_sys::console::log_1(&"3D Projection Space calibrated to semantic brain!".into());
+    }
 }
 
 fn setup_scene(mut commands: Commands) {
@@ -274,7 +315,7 @@ fn handle_picking(
                         y: node.position.y,
                         z: node.position.z,
                         is_new: false,
-                        created_at: "".to_string(), // UI will pull from feed if needed
+                        created_at: "".to_string(),
                     };
                     if let Ok(js_val) = serde_wasm_bindgen::to_value(&data) {
                         update_ui(js_val);
@@ -318,7 +359,6 @@ fn spawn_load_task() {
     wasm_bindgen_futures::spawn_local(async {
         loop {
             if let Some(client) = TURSO_CLIENT.lock().unwrap().as_ref() {
-                // Now fetching text, x, y, z AND created_at, ordered by the new timestamp
                 if let Ok(rows) = client.execute_sql("SELECT text, x, y, z, created_at FROM nodes ORDER BY created_at DESC", vec![]).await {
                     let mut current_nodes = Vec::new();
                     let mut queue = NODE_QUEUE.lock().unwrap();
@@ -410,7 +450,8 @@ fn sync_camera_commands(mut app_state: ResMut<AppState>) {
 pub async fn add_node_wasm(text: String) -> Result<JsValue, JsValue> {
     let clean_text = text.trim().to_string();
     if clean_text.is_empty() { return Err(JsValue::from_str("Input empty")); }
-    let pos = project_text_to_3d(&clean_text);
+    
+    let pos = get_semantic_pos(&clean_text);
     if let Some(client) = TURSO_CLIENT.lock().unwrap().as_ref() {
         let existing = client.execute_sql("SELECT x, y, z FROM nodes WHERE text = ?", vec![serde_json::json!(clean_text)]).await
             .map_err(|e| JsValue::from_str(&e.to_string()))?;

@@ -24,3 +24,12 @@ Thumbs.db
 *.wasm
 *.js
 !index.html
+
+#data files
+/data
+
+#extra stuff
+build.bat
+build.sh
+build.ps1
+trained_brain.bin

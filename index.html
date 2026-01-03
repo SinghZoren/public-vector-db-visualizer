@@ -129,7 +129,6 @@
     </style>
 </head>
 <body>
-    <!-- LEFT PANEL: Add & Instructions -->
     <div class="side-panel">
         <div style="font-size: 10px; margin-bottom: 10px;">> VECTOR_OS v1.0.5</div>
         <h3>Control Center</h3>
@@ -150,14 +149,12 @@
         </div>
     </div>
 
-    <!-- MAIN VIEW -->
     <canvas id="bevy"></canvas>
     
     <div class="controls-hint">
         PAN-ORBIT: LEFT_MB | ZOOM: SCROLL | SELECT: CLICK_ARROW
     </div>
 
-    <!-- RIGHT PANEL: Selection & Live Feed -->
     <div class="side-panel side-panel-right">
         <div style="font-size: 10px; margin-bottom: 10px;">> STATUS: MONITORING...</div>
         <h3>Inspector</h3>
@@ -173,7 +170,6 @@
         <div id="feedPanel">
             <div class="label">LIVE_DATABASE_FEED</div>
             <div id="recentList" class="recent-list">
-                <!-- Live nodes go here -->
                 <div style="color: #050;">WAITING FOR DATA...</div>
             </div>
         </div>
@@ -207,7 +203,6 @@
             document.getElementById('selectionPanel').style.display = 'none';
         };
 
-        // Bridge function called from Rust
         window.updateUI = function(data) {
             document.getElementById('selectionPanel').style.display = 'block';
             document.getElementById('selectedWord').textContent = data.text.toUpperCase();
@@ -226,11 +221,7 @@
                     <div style="font-size: 10px; color: #0a0;">X:${node.x.toFixed(1)} Y:${node.y.toFixed(1)} Z:${node.z.toFixed(1)}</div>
                 `;
                 item.onclick = () => {
-                    // This will be handled by the click system in Rust if we select it
-                    // For now, we just update the UI
                     window.updateUI(node);
-                    // To actually fly there, we need to expose a way to set the target in Rust
-                    // Let's just use addNode for now as it handles duplicates correctly
                     add_node_wasm(node.text);
                 };
                 list.appendChild(item);
