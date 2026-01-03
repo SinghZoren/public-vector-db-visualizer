@@ -21,9 +21,9 @@ graph TD
     H -->|WASM| I[Bevy 3D Visualization]
     
     subgraph "API Layer"
-    J[/predict/similar]
-    K[/predict/analogy]
-    L[/train/wiki/status]
+    J["/predict/similar"]
+    K["/predict/analogy"]
+    L["/train/wiki/status"]
     end
     
     F --- J
@@ -48,7 +48,7 @@ To maintain stability across a vocabulary of 330,000+ words:
 *   **Double Precision Summation**: Dot products and length calculations use `f64` internal accumulation to prevent rounding drift in high-dimensional space.
 *   **Box-Muller Initialization**: New words are initialized using a Gaussian distribution, ensuring an even spread across the 128D hypersphere from the start.
 *   **Adaptive Learning Rate**: The learning rate ($\alpha$) decays linearly as training progresses through the Wikipedia dump:
-    $$\alpha = \text{max}(0.0001, \alpha_{base} \times (1 - \frac{\text{tokens}}{\text{max\_tokens}}))$$
+    $$\alpha = \text{max}(0.0001, \alpha_{0} \times (1 - \frac{\text{tokens}}{\text{TotalTokens}}))$$
 
 ### 3. 3D Projection Pipeline
 Projecting 128D down to 3D for visualization requires preserving local structure:
@@ -114,7 +114,7 @@ Calculates Softmax attention weights across a list of context words relative to 
 
 ---
 
-## 🗄️ Project Structure
+## Project Structure
 *   `src/brain/model.rs`: The 128D Semantic Brain & SGNS implementation.
 *   `src/brain/linalg.rs`: Custom linear algebra (Vectors, Dot products, Normalization).
 *   `src/train/wiki.rs`: Streaming Wikipedia bzip2 decoder and XML parser.
