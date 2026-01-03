@@ -48,9 +48,5 @@ else
 fi
 
 cp -r pkg dist/
-# Copy the trained brain if it exists (Note: Cloudflare has a 25MB limit per file)
-if [ -f "trained_brain.bin" ]; then
-    cp trained_brain.bin dist/
-fi
 
 echo "Build complete! Files are in dist/"
