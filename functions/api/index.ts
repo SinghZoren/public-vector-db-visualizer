@@ -1,5 +1,6 @@
 interface Env {
-  TURSO_DATABASE_HOST: string;
+  TURSO_DATABASE_HOST?: string;
+  TURSO_DATABASE_URL?: string;
   TURSO_AUTH_TOKEN: string;
   PUBLIC_SITE_ORIGIN?: string;
 }
@@ -20,23 +21,26 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       });
     }
 
+    // Try to find the host in either variable
+    const rawHost = env.TURSO_DATABASE_HOST || env.TURSO_DATABASE_URL;
+
     // Safety check: Are environment variables set?
-    if (!env.TURSO_DATABASE_HOST || !env.TURSO_AUTH_TOKEN) {
+    if (!rawHost || !env.TURSO_AUTH_TOKEN) {
       return new Response(JSON.stringify({ 
         error: "Environment Variables Missing",
         details: {
-          has_host: !!env.TURSO_DATABASE_HOST,
+          has_host: !!rawHost,
           has_token: !!env.TURSO_AUTH_TOKEN
         },
-        hint: "Go to Pages Dashboard -> Settings -> Functions -> Environment variables and add them there."
+        hint: "Make sure you have TURSO_DATABASE_URL and TURSO_AUTH_TOKEN set in Cloudflare Settings."
       }), {
         status: 500,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
       });
     }
 
-    // Clean the host
-    const host = env.TURSO_DATABASE_HOST.replace("https://", "").replace("libsql://", "").split("/")[0];
+    // Clean the host (remove protocol and everything after the first slash)
+    const host = rawHost.replace("https://", "").replace("libsql://", "").split("/")[0].split("?")[0];
     
     // Extract path
     let tursoPath = url.pathname.replace("/api", "");
@@ -65,7 +69,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       body: JSON.stringify(body || {})
     });
 
-    // Read the text body from Turso to avoid streaming issues
     const resText = await tursoRes.text();
 
     return new Response(resText, {
