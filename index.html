@@ -175,6 +175,7 @@
         </div>
     </div>
 
+    <script src="web_config.js"></script>
     <script type="module">
         import init, { add_node_wasm, run_bevy_app, clear_target } from './pkg/vecors.js';
 
@@ -229,7 +230,8 @@
         };
 
         window.tursoExecute = async function(url, token, sql, args) {
-            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+            const base = window.PUBLIC_CONFIG.API_BASE_URL || "/api";
+            
             const mappedArgs = args.map(arg => {
                 if (arg === null) return { type: "null" };
                 if (typeof arg === "number") {
@@ -246,10 +248,9 @@
                 ]
             };
 
-            const response = await fetch(proxyUrl, {
+            const response = await fetch(base, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)

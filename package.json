@@ -1,0 +1,16 @@
+{
+  "name": "vecors",
+  "version": "0.1.0",
+  "description": "3D Vector Space Visualization",
+  "main": "index.js",
+  "scripts": {
+    "build": "./build.sh",
+    "worker:dev": "wrangler dev --config cloudflare/worker/wrangler.toml",
+    "worker:deploy": "wrangler deploy --config cloudflare/worker/wrangler.toml"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241112.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  }
+}

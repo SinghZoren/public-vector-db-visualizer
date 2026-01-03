@@ -1,22 +1,25 @@
-if (Test-Path ".env.local") {
-    Write-Host "Loading environment variables from .env.local..."
-    $envContent = Get-Content ".env.local" | Where-Object { $_ -notmatch '^#' -and $_.Trim() -ne '' }
-    foreach ($line in $envContent) {
-        $key, $value = $line -split '=', 2
-        Set-Item -Path "env:$key" -Value $value
-    }
-} else {
-    Write-Host "Warning: .env.local not found. Make sure to create it with TURSO_DATABASE_URL and TURSO_AUTH_TOKEN"
-}
+#!/bin/bash
+
+# Ensure dist directory exists
+mkdir -p dist
+
+# Ensure pkg directory exists
+mkdir -p pkg
 
 echo "Building for WASM..."
-export TURSO_DATABASE_URL=$TURSO_DATABASE_URL
-export TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN
+# Note: TURSO env vars should be provided by the environment during build
 cargo build --release --target wasm32-unknown-unknown --lib
 
-Write-Host "Generating WASM bindings..."
+echo "Generating WASM bindings..."
 wasm-bindgen --out-dir pkg --target web target/wasm32-unknown-unknown/release/vecors.wasm
 
-Write-Host "Build complete! Serve the files with a local server:"
-Write-Host "python -m http.server 8000"
-Write-Host "Then open http://localhost:8000 in your browser"
+echo "Copying files to dist/..."
+cp index.html dist/
+cp web_config.js dist/
+cp -r pkg dist/
+# If there are any assets, copy them too
+if [ -d "assets" ]; then
+    cp -r assets dist/
+fi
+
+echo "Build complete! Files are in dist/"

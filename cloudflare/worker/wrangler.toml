@@ -1,0 +1,11 @@
+name = "public-vector-db-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-11-12"
+routes = []
+
+[vars]
+PUBLIC_SITE_ORIGIN = ""
+
+# secrets:
+# TURSO_AUTH_TOKEN
+# TURSO_DATABASE_HOST
