@@ -39,7 +39,14 @@ wasm-bindgen --out-dir pkg --target web target/wasm32-unknown-unknown/release/ve
 echo "Copying files to dist/..."
 mkdir -p dist
 cp index.html dist/
-cp web_config.js dist/
+
+# Create a default web_config.js if missing
+if [ ! -f "web_config.js" ]; then
+    echo 'window.PUBLIC_CONFIG = { API_BASE_URL: "" };' > dist/web_config.js
+else
+    cp web_config.js dist/
+fi
+
 cp -r pkg dist/
 # Copy the trained brain if it exists (Note: Cloudflare has a 25MB limit per file)
 if [ -f "trained_brain.bin" ]; then

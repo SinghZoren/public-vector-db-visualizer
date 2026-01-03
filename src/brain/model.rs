@@ -161,6 +161,7 @@ impl SemanticBrain {
         self.embeddings[word_idx].normalize();
     }
 
+    #[allow(dead_code)]
     pub fn find_most_similar(&self, word: &str, top_n: usize) -> Vec<(String, f32)> {
         let word_upper = word.to_uppercase();
         let target_idx = match self.vocabulary.get(&word_upper) {
@@ -200,6 +201,7 @@ impl SemanticBrain {
         similarities
     }
 
+    #[allow(dead_code)]
     pub fn balance_vectors(&mut self) {
         if self.embeddings.is_empty() { return; }
         
@@ -255,6 +257,7 @@ impl SemanticBrain {
         }
     }
 
+    #[allow(dead_code)]
     pub fn calculate_analogy(&self, a: &str, b: &str, c: &str, top_n: usize) -> Vec<(String, f32)> {
         let vec_a = match self.get_embedding(a) { Some(v) => v, None => return vec![] };
         let vec_b = match self.get_embedding(b) { Some(v) => v, None => return vec![] };
@@ -282,6 +285,7 @@ impl SemanticBrain {
         similarities
     }
 
+    #[allow(dead_code)]
     pub fn calculate_attention(&self, target_word: &str, context_words: &[String]) -> Vec<(String, f32)> {
         let target_vec = match self.get_embedding(target_word) {
             Some(v) => v,
@@ -309,6 +313,7 @@ impl SemanticBrain {
         attention_scores
     }
 
+    #[allow(dead_code)]
     pub fn compare_relationships(&self, a1: &str, b1: &str, a2: &str, b2: &str) -> f32 {
         let v_a1 = match self.get_embedding(a1) { Some(v) => v, None => return 0.0 };
         let v_b1 = match self.get_embedding(b1) { Some(v) => v, None => return 0.0 };

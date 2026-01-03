@@ -24,6 +24,7 @@ Thumbs.db
 *.wasm
 *.js
 !index.html
+!web_config.js
 
 #data files
 /data
