@@ -11,16 +11,15 @@ export default {
     }
 
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/train")) {
+    if (url.pathname.startsWith("/api/train")) {
       return new Response(JSON.stringify({ error: "Training is disabled in production" }), {
         status: 405,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": env.PUBLIC_SITE_ORIGIN || "*" }
       });
     }
 
-    // Forward to Turso by default, but allow other paths if needed
-    let tursoPath = url.pathname;
-    if (tursoPath === "/" || tursoPath === "/api" || tursoPath === "/api/") {
+    let tursoPath = url.pathname.replace("/api", "");
+    if (tursoPath === "" || tursoPath === "/") {
       tursoPath = url.searchParams.get("path") || "/v2/pipeline";
     }
     
