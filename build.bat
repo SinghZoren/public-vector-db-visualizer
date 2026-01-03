@@ -9,7 +9,7 @@ for /f "tokens=1,2 delims==" %%a in (.env.local) do (
 
 echo Building for WASM...
 set RUSTFLAGS=--cfg getrandom_backend="wasm_js"
-cargo build --release --target wasm32-unknown-unknown
+cargo build --release --target wasm32-unknown-unknown --lib
 
 echo Generating WASM bindings...
 wasm-bindgen --out-dir pkg --target web target/wasm32-unknown-unknown/release/vecors.wasm

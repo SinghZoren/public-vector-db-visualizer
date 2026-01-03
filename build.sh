@@ -9,10 +9,10 @@ if (Test-Path ".env.local") {
     Write-Host "Warning: .env.local not found. Make sure to create it with TURSO_DATABASE_URL and TURSO_AUTH_TOKEN"
 }
 
-Write-Host "Building for WASM..."
-$env:TURSO_DATABASE_URL = $env:TURSO_DATABASE_URL
-$env:TURSO_AUTH_TOKEN = $env:TURSO_AUTH_TOKEN
-cargo build --release --target wasm32-unknown-unknown
+echo "Building for WASM..."
+export TURSO_DATABASE_URL=$TURSO_DATABASE_URL
+export TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN
+cargo build --release --target wasm32-unknown-unknown --lib
 
 Write-Host "Generating WASM bindings..."
 wasm-bindgen --out-dir pkg --target web target/wasm32-unknown-unknown/release/vecors.wasm

@@ -243,7 +243,7 @@ impl WikipediaTrainer {
                                             
                                             for i in 0..tokens.len() {
                                                 let center = &tokens[i];
-                                                let start = i.saturating_sub(config.window_size);
+                                                let start = (i as usize).saturating_sub(config.window_size);
                                                 let end = (i + config.window_size + 1).min(tokens.len());
                                                 let context: Vec<String> = tokens[start..i]
                                                     .iter()
