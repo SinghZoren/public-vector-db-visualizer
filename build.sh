@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-echo "Setting up build environment..."
+echo "Setting up build environment (v2)..."
 
 # 1. Install Rust if missing
 if ! command -v cargo &> /dev/null
