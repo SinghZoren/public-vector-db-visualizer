@@ -77,23 +77,37 @@ impl Default for PanOrbitCamera {
 
 #[wasm_bindgen(start)]
 pub fn main() {
-    let database_url = env!("TURSO_DATABASE_URL").to_string();
-    let auth_token = env!("TURSO_AUTH_TOKEN").to_string();
-    *TURSO_CLIENT.lock().unwrap() = Some(TursoClient::new(database_url, auth_token));
-
-    let mut brain = SEMANTIC_BRAIN.lock().unwrap();
+    let database_url = match option_env!("TURSO_DATABASE_URL") {
+        Some(url) => url.to_string(),
+        None => "".to_string(),
+    };
+    let auth_token = match option_env!("TURSO_AUTH_TOKEN") {
+        Some(token) => token.to_string(),
+        None => "".to_string(),
+    };
     
-    let model_bytes = include_bytes!("../trained_brain.bin");
-    if model_bytes.len() > 0 {
-        match SemanticBrain::from_bytes(model_bytes) {
-            Ok(loaded_brain) => {
-                *brain = loaded_brain;
-                web_sys::console::log_1(&"Embedded Semantic Brain Loaded!".into());
+    if !database_url.is_empty() {
+        *TURSO_CLIENT.lock().unwrap() = Some(TursoClient::new(database_url, auth_token));
+    }
+
+    // Dynamic brain loading is now handled via load_brain_wasm
+}
+
+#[wasm_bindgen]
+pub fn load_brain_wasm(bytes: &[u8]) -> Result<(), String> {
+    let mut brain = SEMANTIC_BRAIN.lock().unwrap();
+    let mut projector = PROJECTOR.lock().unwrap();
+    
+    match SemanticBrain::from_bytes(bytes) {
+        Ok(loaded_brain) => {
+            *brain = loaded_brain;
+            if !brain.embeddings.is_empty() {
+                projector.fit(&brain.embeddings);
             }
-            Err(e) => {
-                web_sys::console::log_1(&format!("Failed to load embedded brain: {}. Using blank brain.", e).into());
-            }
+            web_sys::console::log_1(&"Semantic Brain Loaded via JS!".into());
+            Ok(())
         }
+        Err(e) => Err(format!("Failed to load brain: {}", e)),
     }
 }
 

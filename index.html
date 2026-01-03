@@ -177,10 +177,23 @@
 
     <script src="web_config.js"></script>
     <script type="module">
-        import init, { add_node_wasm, run_bevy_app, clear_target } from './pkg/vecors.js';
+        import init, { add_node_wasm, run_bevy_app, clear_target, load_brain_wasm } from './pkg/vecors.js';
 
         async function run() {
             await init();
+            
+            // Try to load the pre-trained brain if it exists
+            try {
+                const response = await fetch('trained_brain.bin');
+                if (response.ok) {
+                    const bytes = new Uint8Array(await response.arrayBuffer());
+                    load_brain_wasm(bytes);
+                    console.log("Successfully loaded trained_brain.bin");
+                }
+            } catch (e) {
+                console.log("No pre-trained brain found or failed to load. Using dynamic projection.");
+            }
+
             try { run_bevy_app(); } catch (e) {
                 if (!e.message || !e.message.includes("control flow")) console.error(e);
             }
