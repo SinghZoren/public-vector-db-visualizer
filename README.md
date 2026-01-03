@@ -4,31 +4,56 @@ Vecors is a self-learning semantic engine that builds a high-dimensional vector 
 
 ## The Pipeline Architecture
 
+### High-Level System Flow
 ```mermaid
 graph TD
-    A[Wikipedia XML Dump] -->|Async Stream| B[Bzip2 Multi-Stream Decoder]
-    B -->|Stream| C[Streaming XML Parser]
-    C -->|Extract| D[Clean Wikitext & Tokens]
-    D -->|Sliding Window| E[Skip-Gram Training]
+    %% Global Styling
+    classDef data fill:#2d3436,stroke:#dfe6e9,stroke-width:2px,color:#fff;
+    classDef process fill:#0984e3,stroke:#74b9ff,stroke-width:2px,color:#fff;
+    classDef storage fill:#6c5ce7,stroke:#a29bfe,stroke-width:2px,color:#fff;
+    classDef api fill:#00b894,stroke:#55efc4,stroke-width:2px,color:#fff;
+    classDef frontend fill:#d63031,stroke:#ff7675,stroke-width:2px,color:#fff;
+
+    A[(Wikipedia XML Dump)]:::data -->|Async Stream| B(Bzip2 Multi-Stream Decoder):::process
+    B -->|Byte Stream| C(Streaming XML Parser):::process
+    C -->|Extract Content| D(Clean Wikitext & Tokenizer):::process
+    D -->|Sliding Window| E{{Skip-Gram Training}}:::process
     
     subgraph "Semantic Brain (128D)"
-    E --> F[Target Embeddings]
-    E --> G[Context Embeddings]
+    E --> F[Target Embeddings]:::storage
+    E --> G[Context Embeddings]:::storage
     F <-->|Gradient Descent| G
     end
     
-    F -->|PCA + Orthogonalization| H[3D Projection Space]
-    H -->|WASM| I[Bevy 3D Visualization]
+    F -->|PCA + Orthogonalization| H[3D Projection Space]:::process
+    H -->|WASM Interface| I(Bevy 3D Visualization):::frontend
     
-    subgraph "API Layer"
-    J["/predict/similar"]
-    K["/predict/analogy"]
-    L["/train/wiki/status"]
+    subgraph "API Control Layer"
+    J["/predict/similar"]:::api
+    K["/predict/analogy"]:::api
+    L["/train/wiki/status"]:::api
     end
     
     F --- J
     F --- K
     L --- E
+```
+
+### Simplified User Input Flow
+*How a single word becomes a 3D vector:*
+
+```mermaid
+graph LR
+    classDef input fill:#2d3436,stroke:#dfe6e9,stroke-width:2px,color:#fff;
+    classDef step fill:#0984e3,stroke:#74b9ff,stroke-width:2px,color:#fff;
+    classDef output fill:#d63031,stroke:#ff7675,stroke-width:2px,color:#fff;
+
+    User([User Enters Word]):::input --> Hash[Vocabulary Lookup]:::step
+    Hash --> Vec128[Retrieve 128D Neural Vector]:::step
+    Vec128 --> PCA[Apply PCA Projection Matrix]:::step
+    PCA --> Scale[Scale & Whiten Dimensions]:::step
+    Scale --> Pos([3D Coordinate X, Y, Z]):::output
+    Pos --> Bevy[Bevy Engine Render]:::output
 ```
 
 ---
